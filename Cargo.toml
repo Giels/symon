@@ -1,0 +1,9 @@
+[package]
+name = "symon"
+version = "0.1.0"
+authors = ["nobody"]
+
+[dependencies]
+hdf5-rs = "*"
+arrayfire = "*"
+lazy_static = "*"
