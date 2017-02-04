@@ -1,10 +1,10 @@
-pub mod base;
-pub mod graph;
-pub mod core;
+mod base;
+mod graph;
+mod ops;
 
 pub use self::base::*;
 pub use self::graph::*;
-pub use self::core::*;
+pub use self::ops::*;
 
 macro_rules! gen_test {
 	( $symb:expr, $af:expr ) => {
@@ -139,7 +139,7 @@ mod tests {
 	fn test_conv() {
 		setup();
 		use ::arrayfire::{ConvDomain, ConvMode};
-		use ::arrayfire::{Dim4, all_true_all, eq, print_gen};
+		use ::arrayfire::{Dim4, all_true_all, eq};
 	
 		let mut graph = Graph::new();
 		let dims = [64, 32, 16, 8];
@@ -171,7 +171,7 @@ mod tests {
 		//TODO: more dimensions for kernel
 		setup();
 		use ::arrayfire::{ConvDomain, ConvMode};
-		use ::arrayfire::{Dim4, all_true_all, le, ge, max_all, print_gen, constant};
+		use ::arrayfire::{Dim4, all_true_all, le, ge, max_all};
 		let slack = 1e-2;
 		let eps = 6e-4;
 		
@@ -182,7 +182,7 @@ mod tests {
 			for j in (0..i+1) {
 				inp_dims[j] = dims[j];
 			}
-			let mut filt_dims = inp_dims.clone();
+			let filt_dims = inp_dims.clone();
 			let af_conv = match i {
 							3 => ::arrayfire::convolve3,
 							2 => ::arrayfire::convolve2,
@@ -216,7 +216,7 @@ mod tests {
 	#[test]
 	fn test_affine() {
 		setup();
-		use ::arrayfire::{Dim4, print_gen, matmul, add, sum_all, MatProp};
+		use ::arrayfire::{Dim4, matmul, add, sum_all, MatProp};
 	
 	    let mut graph = Graph::new();
 	
@@ -245,7 +245,7 @@ mod tests {
 	#[test]
 	fn test_affine_diff() {
 		setup();
-		use ::arrayfire::{Dim4, print_gen, matmul, add, sum_all, MatProp, eq, all_true_all, transpose, constant};
+		use ::arrayfire::{Dim4, matmul, MatProp, eq, all_true_all, transpose, constant};
 	
 	    let mut graph = Graph::new();
 	
@@ -264,15 +264,13 @@ mod tests {
 	
 		graph.replace(x, Var::new_shared(xval.clone()));
 
-		let eval = graph.eval(z);
-
-		let mut dz_w = graph.grad(z, vec![w]);
+		let dz_w = graph.grad(z, vec![w]);
 		let dz_w_eval = graph.eval(dz_w[0]);
 		let cst = constant::<f32>(1., Dim4::new(&[16, 5, 1, 1]));
 		let dz_w_ref = matmul(&transpose(&xval, false), &cst, MatProp::NONE, MatProp::NONE);
 		assert_eq!(all_true_all(&eq(&dz_w_ref, &dz_w_eval, false)).0, 1.);
 
-		let mut dz_y = graph.grad(z, vec![y]);
+		let dz_y = graph.grad(z, vec![y]);
 		let dz_y_eval = graph.eval(dz_y[0]);
 
 		// NOTE: the `y` is broadcasted but that fact is not being tracked yet, so
@@ -281,7 +279,7 @@ mod tests {
 		let dz_y_ref = constant::<f32>(1., Dim4::new(&[16, 5, 1, 1]));
 		assert_eq!(all_true_all(&eq(&dz_y_ref, &dz_y_eval, false)).0, 1.);
 
-		let mut dz_x = graph.grad(z, vec![x]);
+		let dz_x = graph.grad(z, vec![x]);
 		let dz_x_eval = graph.eval(dz_x[0]);
 		let cst = constant::<f32>(1., Dim4::new(&[16, 5, 1, 1]));
 		let dz_x_ref = matmul(&cst, &transpose(&wval, false), MatProp::NONE, MatProp::NONE);

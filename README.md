@@ -8,4 +8,5 @@ It is currently in its infancy and can barely be considered to be in an alpha st
 - Cleanup
 - More/better tests
 - Serialization
+- Optimzation passes (common subexpression elimination, identity, negation-negation, etc.)
 - Etc.

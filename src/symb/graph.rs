@@ -1,13 +1,9 @@
-use std::fmt::{Debug};
 use std::collections::{HashMap, HashSet};
 
 use ::symb::base::{Node, NodeID, NodeData};
-use ::symb::core::{Add, ConstantLike};
+use ::symb::ops::{Add};
 
-use ::arrayfire::{Dim4};
-
-use std::cell::{RefCell, RefMut};
-use std::ops::DerefMut;
+use std::cell::{RefCell};
 use std::rc::{Rc};
 
 #[derive(Debug)]
@@ -107,7 +103,6 @@ impl Graph {
     }
 
     pub fn grad(&mut self, node: NodeID, wrt: Vec<NodeID>) -> Vec<NodeID> {
-		let mut head_inps = self.nodes[node as usize].borrow().get_inputs();
 		let mut grads = vec![];
 
 		for w in wrt.iter() {
@@ -131,7 +126,6 @@ impl Graph {
 				let nb = node.borrow();
 
 				let mut all_new_g: Vec<_> = nb.backward(this_g, self).into_iter().map(|x| Some(x)).collect();
-				let ref target_roots = self.roots[&target];
 
 				if inps.len() != 0 {
 					path.append(&mut inps);
