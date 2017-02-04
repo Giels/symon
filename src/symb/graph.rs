@@ -27,7 +27,7 @@ impl Graph {
 		*(self.nodes[node as usize].borrow_mut()) = new_node;
 	}
 
-    pub fn connect(&mut self, node: NodeID, mut inp: Vec<NodeID>) {
+    fn connect(&mut self, node: NodeID, mut inp: Vec<NodeID>) {
         let nodes = self.edges.entry(node).or_insert(Vec::new());
 		nodes.append(&mut inp);
     }
