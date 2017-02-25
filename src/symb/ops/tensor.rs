@@ -1,3 +1,8 @@
+//TODO: indexing, inverse, max/min/argmax/argmin, mean/median
+// reshape, flatten, reorder, select, tile
+// identity
+// nonzero (locate)
+// maxof, minof
 use ::symb::base::{Node, NodeID, NodeData};
 use ::symb::graph::{Graph};
 use ::symb::ops::utils::{ConstantLike};
@@ -63,7 +68,7 @@ impl Node for SumAll {
 		match g {
 			Some(grad) => vec![grad],
 			None => {
-						vec![graph.add(ConstantLike::new(self.inp, 1.))]
+						vec![graph.add(ConstantLike::new(1., self.inp))]
 					},
 		}
 	}
@@ -133,7 +138,7 @@ impl Node for StdevAll {
 		match g {
 			Some(grad) => vec![grad],
 			None => {
-						vec![graph.add(ConstantLike::new(self.inp, 1.))] //TODO
+						vec![graph.add(ConstantLike::new(1., self.inp))] //TODO
 					},
 		}
 	}
@@ -171,7 +176,7 @@ impl Node for VarianceAll {
 		match g {
 			Some(grad) => vec![grad],
 			None => {
-						vec![graph.add(ConstantLike::new(self.inp, 1.))] //TODO
+						vec![graph.add(ConstantLike::new(1., self.inp))] //TODO
 					},
 		}
 	}
@@ -205,7 +210,7 @@ impl Node for Sum {
 		match g {
 			Some(grad) => vec![grad],
 			None => {
-						vec![graph.add(ConstantLike::new(self.inp, 1.))] //TODO: Tile
+						vec![graph.add(ConstantLike::new(1., self.inp))] //TODO: Tile
 					},
 		}
 	}
@@ -269,7 +274,7 @@ impl Node for Stdev {
 		match g {
 			Some(grad) => vec![grad],
 			None => {
-						vec![graph.add(ConstantLike::new(self.inp, 1.))] //TODO
+						vec![graph.add(ConstantLike::new(1., self.inp))] //TODO
 					},
 		}
 	}
@@ -303,7 +308,7 @@ impl Node for Variance {
 		match g {
 			Some(grad) => vec![grad],
 			None => {
-						vec![graph.add(ConstantLike::new(self.inp, 1.))] //TODO
+						vec![graph.add(ConstantLike::new(1., self.inp))] //TODO
 					},
 		}
 	}

@@ -8,7 +8,7 @@ pub struct ConstantLike {
 }
 
 impl ConstantLike {
-    pub fn new(x: NodeID, cst: f32) -> Box<ConstantLike> {
+    pub fn new(cst: f32, x: NodeID) -> Box<ConstantLike> {
         Box::new(ConstantLike {
 			inp: x,
 			cst: cst,
@@ -26,6 +26,6 @@ impl Node for ConstantLike {
     }
 
 	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
-		vec![graph.add(ConstantLike::new(g.unwrap(), 0.))]
+		vec![graph.add(ConstantLike::new(0., g.unwrap()))]
 	}
 }

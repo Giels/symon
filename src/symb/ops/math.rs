@@ -4,6 +4,7 @@ use ::symb::base::{Node, NodeID, NodeData};
 use ::symb::graph::{Graph};
 
 use ::symb::ops::tensor::{Transpose};
+use ::symb::ops::utils::{ConstantLike};
 
 use ::arrayfire::{ConvMode, ConvDomain};
 
@@ -282,5 +283,135 @@ impl Node for Neg {
 	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let node = Neg::new(g.unwrap());
 		vec![graph.add(node)]
+	}
+}
+
+#[derive(Debug)]
+pub struct Exp {
+    inp: NodeID,
+}
+
+impl Exp {
+    pub fn new(x: NodeID) -> Box<Exp> {
+        Box::new(Exp {
+			inp: x,
+        })
+    }
+}
+
+impl Node for Exp {
+    fn get_inputs(&self) -> Vec<NodeID> {
+        vec![self.inp]
+    }
+
+    fn eval(&self, inputs: Vec<&NodeData>) -> NodeData {
+        ::arrayfire::exp(&inputs[0])
+    }
+
+	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+		let g = g.unwrap();
+		let node = Mul::new(g, graph.add(Exp::new(self.inp)));
+		vec![graph.add(node)]
+	}
+}
+
+#[derive(Debug)]
+pub struct Log {
+    inp: NodeID,
+}
+
+impl Log {
+    pub fn new(x: NodeID) -> Box<Log> {
+        Box::new(Log {
+			inp: x,
+        })
+    }
+}
+
+impl Node for Log {
+    fn get_inputs(&self) -> Vec<NodeID> {
+        vec![self.inp]
+    }
+
+    fn eval(&self, inputs: Vec<&NodeData>) -> NodeData {
+        ::arrayfire::log(&inputs[0])
+    }
+
+	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+		let g = g.unwrap();
+		let node = Div::new(g, self.inp);
+		vec![graph.add(node)]
+	}
+}
+
+#[derive(Debug)]
+pub struct Sigm {
+    inp: NodeID,
+}
+
+impl Sigm {
+    pub fn new(x: NodeID) -> Box<Sigm> {
+        Box::new(Sigm {
+			inp: x,
+        })
+    }
+}
+
+impl Node for Sigm {
+    fn get_inputs(&self) -> Vec<NodeID> {
+        vec![self.inp]
+    }
+
+    fn eval(&self, inputs: Vec<&NodeData>) -> NodeData {
+        ::arrayfire::sigmoid(&inputs[0])
+    }
+
+	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+		let g = g.unwrap();
+		let ei = graph.add(Exp::new(self.inp));
+		let e1 = graph.add(ConstantLike::new(1., self.inp));
+		let exp1 = graph.add(Add::new(ei, e1));
+		let exp12 = graph.add(Mul::new(exp1, exp1));
+		let eioexp12 = graph.add(Div::new(ei, exp12));
+		let node = Mul::new(g, eioexp12);
+		vec![graph.add(node)]
+	}
+}
+
+#[derive(Debug)]
+pub struct Pow {
+    inp: NodeID,
+    pow: NodeID,
+}
+
+impl Pow {
+    pub fn new(x: NodeID, y: NodeID) -> Box<Pow> {
+        Box::new(Pow {
+			inp: x,
+			pow: y,
+        })
+    }
+}
+
+impl Node for Pow {
+    fn get_inputs(&self) -> Vec<NodeID> {
+        vec![self.inp, self.pow]
+    }
+
+    fn eval(&self, inputs: Vec<&NodeData>) -> NodeData {
+        ::arrayfire::pow(inputs[0], inputs[1], true)
+    }
+
+	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+		let g = g.unwrap();
+		let p1 = graph.add(ConstantLike::new(1., self.pow));
+		let gm1 = graph.add(Sub::new(self.pow, p1));
+		let powgm1 = graph.add(Pow::new(self.inp, gm1));
+		let node_l = Mul::new(g, graph.add(Mul::new(self.pow, powgm1)));
+		let inp /* XXX */ = graph.add(Pow::new(self.inp, self.pow));
+		let inpg = graph.add(Mul::new(inp, g));
+		let log = graph.add(Log::new(self.inp));
+		let node_r = Mul::new(log, inpg);
+		vec![graph.add(node_l), graph.add(node_r)]
 	}
 }
