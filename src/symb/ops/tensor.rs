@@ -31,7 +31,7 @@ impl Node for Transpose {
         ::arrayfire::transpose(&inputs[0], false)
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let node = Transpose::new(g.unwrap());
 		vec![graph.add(node)]
 	}
@@ -64,7 +64,7 @@ impl Node for SumAll {
 		}
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		match g {
 			Some(grad) => vec![grad],
 			None => {
@@ -101,7 +101,7 @@ impl Node for FlipAll {
 		accum.unwrap()
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let node = FlipAll::new(g.unwrap());
 		vec![graph.add(node)]
 	}
@@ -134,7 +134,7 @@ impl Node for StdevAll {
 		}
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		match g {
 			Some(grad) => vec![grad],
 			None => {
@@ -172,7 +172,7 @@ impl Node for VarianceAll {
 		// sample variance
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		match g {
 			Some(grad) => vec![grad],
 			None => {
@@ -206,7 +206,7 @@ impl Node for Sum {
         	::arrayfire::sum(&inputs[0], self.dim)
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		match g {
 			Some(grad) => vec![grad],
 			None => {
@@ -240,7 +240,7 @@ impl Node for Flip {
 		::arrayfire::flip(&inputs[0], self.dim)
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let node = Flip::new(g.unwrap(), self.dim);
 		vec![graph.add(node)]
 	}
@@ -270,7 +270,7 @@ impl Node for Stdev {
         ::arrayfire::stdev(&inputs[0], self.dim)
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		match g {
 			Some(grad) => vec![grad],
 			None => {
@@ -304,7 +304,7 @@ impl Node for Variance {
 		::arrayfire::var(&inputs[0], true, self.dim) // sample variance
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		match g {
 			Some(grad) => vec![grad],
 			None => {

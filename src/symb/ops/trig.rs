@@ -25,7 +25,7 @@ impl Node for Cos {
 		::arrayfire::cos(&inputs[0])
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let g = g.unwrap();
 		let s = graph.add(Sin::new(self.inp));
 		let ms = graph.add(Neg::new(s));
@@ -56,7 +56,7 @@ impl Node for Sin {
 		::arrayfire::sin(&inputs[0])
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let g = g.unwrap();
 		let c = graph.add(Cos::new(self.inp));
 		let grad = graph.add(Mul::new(c, g));
@@ -86,7 +86,7 @@ impl Node for Tan {
 		::arrayfire::tan(&inputs[0])
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let g = g.unwrap();
 		let gg = graph.add(Add::new(g, g));
 		let me = graph.add(Tan::new(self.inp)); //XXX
@@ -120,7 +120,7 @@ impl Node for Cosh {
 		::arrayfire::cosh(&inputs[0])
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let g = g.unwrap();
 		let s = graph.add(Sinh::new(self.inp));
 		vec![graph.add(Mul::new(s, g))]
@@ -149,7 +149,7 @@ impl Node for Sinh {
 		::arrayfire::sinh(&inputs[0])
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let g = g.unwrap();
 		let c = graph.add(Cosh::new(self.inp));
 		vec![graph.add(Mul::new(c, g))]
@@ -178,7 +178,7 @@ impl Node for Tanh {
 		::arrayfire::tanh(&inputs[0])
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let g = g.unwrap();
 		let me = graph.add(Tanh::new(self.inp)); //XXX
 		let cm = graph.add(Cosh::new(me));

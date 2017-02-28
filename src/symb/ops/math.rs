@@ -48,7 +48,7 @@ impl Node for Var {
         self.val.clone().unwrap()
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		g.and_then(|g| Some(vec![g])).unwrap()
 	}
 }
@@ -77,7 +77,7 @@ impl Node for Add {
         ::arrayfire::add(inputs[0], inputs[1], true)
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let g = g.unwrap();
 		vec![g, g]
 	}
@@ -107,7 +107,7 @@ impl Node for Sub {
         ::arrayfire::sub(inputs[0], inputs[1], true)
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let g = g.unwrap();
 		vec![g, graph.add(Neg::new(g))]
 	}
@@ -145,7 +145,7 @@ impl Node for Conv {
         conv(inputs[0], inputs[1], if self.expand { ConvMode::EXPAND } else { ConvMode::DEFAULT }, ConvDomain::AUTO)
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let g = g.unwrap();
 		vec![graph.add(Conv::new(g, self.filt, self.expand)), graph.add(Conv::new(self.inp, g, self.expand))]
 	}
@@ -175,7 +175,7 @@ impl Node for Div {
         ::arrayfire::div(inputs[0], inputs[1], true)
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let g = g.unwrap();
 
 		let r2 = graph.add(Mul::new(self.r, self.r));
@@ -213,7 +213,7 @@ impl Node for Mul {
         ::arrayfire::mul(inputs[0], inputs[1], true)
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let node_l = self.r;
 		let node_r = self.l;
 
@@ -245,7 +245,7 @@ impl Node for MatMul {
         ::arrayfire::matmul(&inputs[0], &inputs[1], ::arrayfire::MatProp::NONE, ::arrayfire::MatProp::NONE)
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let g = g.unwrap();
 
 		let l_t = graph.add(Transpose::new(self.l));
@@ -280,7 +280,7 @@ impl Node for Neg {
 		-(inputs[0].clone())
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let node = Neg::new(g.unwrap());
 		vec![graph.add(node)]
 	}
@@ -308,7 +308,7 @@ impl Node for Exp {
         ::arrayfire::exp(&inputs[0])
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let g = g.unwrap();
 		let node = Mul::new(g, graph.add(Exp::new(self.inp)));
 		vec![graph.add(node)]
@@ -337,7 +337,7 @@ impl Node for Log {
         ::arrayfire::log(&inputs[0])
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let g = g.unwrap();
 		let node = Div::new(g, self.inp);
 		vec![graph.add(node)]
@@ -366,7 +366,7 @@ impl Node for Sigm {
         ::arrayfire::sigmoid(&inputs[0])
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let g = g.unwrap();
 		let ei = graph.add(Exp::new(self.inp));
 		let e1 = graph.add(ConstantLike::new(1., self.inp));
@@ -402,7 +402,7 @@ impl Node for Pow {
         ::arrayfire::pow(inputs[0], inputs[1], true)
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let g = g.unwrap();
 		let p1 = graph.add(ConstantLike::new(1., self.pow));
 		let gm1 = graph.add(Sub::new(self.pow, p1));

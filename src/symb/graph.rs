@@ -125,7 +125,7 @@ impl Graph {
 				let node = self.nodes[target as usize].clone();
 				let nb = node.borrow();
 
-				let mut all_new_g: Vec<_> = nb.backward(this_g, self).into_iter().map(|x| Some(x)).collect();
+				let mut all_new_g: Vec<_> = nb.backward(target, this_g, self).into_iter().map(|x| Some(x)).collect();
 
 				if inps.len() != 0 {
 					path.append(&mut inps);

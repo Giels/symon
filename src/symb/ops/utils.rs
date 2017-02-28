@@ -25,7 +25,7 @@ impl Node for ConstantLike {
         ::arrayfire::constant_t(::arrayfire::Scalar::F32(self.cst), inputs[0].dims(), inputs[0].get_type())
     }
 
-	fn backward(&self, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		vec![graph.add(ConstantLike::new(0., g.unwrap()))]
 	}
 }
