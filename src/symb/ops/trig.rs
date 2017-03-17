@@ -89,8 +89,7 @@ impl Node for Tan {
 	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let g = g.unwrap();
 		let gg = graph.add(Add::new(g, g));
-		let me = graph.add(Tan::new(self.inp)); //XXX
-		let tantan = graph.add(Add::new(me, me));
+		let tantan = graph.add(Add::new(this, this));
 		let one = graph.add(ConstantLike::new(1., tantan));
 		let tan2p1 = graph.add(Add::new(tantan, one));
 		let g2otan2p1 = graph.add(Div::new(gg, tan2p1));
@@ -180,10 +179,9 @@ impl Node for Tanh {
 
 	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let g = g.unwrap();
-		let me = graph.add(Tanh::new(self.inp)); //XXX
-		let cm = graph.add(Cosh::new(me));
+		let cm = graph.add(Cosh::new(this));
 		let num = graph.add(Add::new(cm, cm));
-		let me2 = graph.add(Add::new(me, me));
+		let me2 = graph.add(Add::new(this, this));
 		let cm2 = graph.add(Cosh::new(me2));
 		let one = graph.add(ConstantLike(1., cm2));
 		let denom = graph.add(Add::new(cm2, one));

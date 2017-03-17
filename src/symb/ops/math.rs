@@ -408,8 +408,7 @@ impl Node for Pow {
 		let gm1 = graph.add(Sub::new(self.pow, p1));
 		let powgm1 = graph.add(Pow::new(self.inp, gm1));
 		let node_l = Mul::new(g, graph.add(Mul::new(self.pow, powgm1)));
-		let inp /* XXX */ = graph.add(Pow::new(self.inp, self.pow));
-		let inpg = graph.add(Mul::new(inp, g));
+		let inpg = graph.add(Mul::new(this, g));
 		let log = graph.add(Log::new(self.inp));
 		let node_r = Mul::new(log, inpg);
 		vec![graph.add(node_l), graph.add(node_r)]
