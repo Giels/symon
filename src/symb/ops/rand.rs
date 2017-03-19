@@ -4,6 +4,8 @@ use ::symb::base::{Node, NodeID, NodeData};
 use ::symb::graph::{Graph};
 use ::arrayfire::{Dim4};
 
+//TODO: variants with mu/sigma for normal, p0/p1 for uniform, reparam-based grad
+
 #[derive(Debug)]
 pub struct Uniform {
     dims: Dim4,
