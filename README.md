@@ -9,7 +9,7 @@ Symon also aims to support both nvidia and non-nvidia hardware (so while the bac
 
 # Usage
 ```
-use arrayfire::{Dim4, randn};
+use arrayfire::{Array, Dim4, randn};
 
 // Create a graph object
 let graph = Graph::new();
@@ -19,6 +19,7 @@ let w = graph.add(Var::new_shared(randn(Dim4::new(&[4, 10, 1, 1]))));
 let b = graph.add(Var::new_shared(randn(Dim4::new(&[1, 10, 1, 1]))));
 let x = graph.add(Var::new());
 let y = graph.add(Var::new());
+let lambda = graph.add(Var::new_shared(Array::new(&[1e-3], Dim4::new(&[1, 1, 1, 1]))));
 
 // Forward pass (linear regression)
 let wx = graph.add(MatMul::new(w, x));
@@ -46,6 +47,7 @@ Most functions keep the same name as in arrayfire, with some exceptions such as
 - assign -> SetIndex
 - select -> If
 - i{max, min} -> Arg{max, min}
+
 (This list is not exhaustive)
 
 # TODO
