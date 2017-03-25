@@ -1,4 +1,3 @@
-//TODO: TODO
 //TODO: Check that imin/imax/nonzero grads are correct
 use ::symb::base::{Node, NodeID, NodeData};
 use ::symb::graph::{Graph};
