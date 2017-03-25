@@ -1,10 +1,12 @@
 mod base;
 mod graph;
 mod ops;
+mod core;
 
 pub use self::base::*;
 pub use self::graph::*;
 pub use self::ops::*;
+pub use self::core::*;
 
 macro_rules! gen_test {
 	( $symb:expr, $af:expr ) => {
@@ -66,14 +68,14 @@ mod tests {
 		setup();
 		use ::arrayfire::{all_true_all, eq, Dim4};
 
-	    let mut graph = Graph::new();
-	
+		let mut graph = Graph::new();
+
 		let xval = ::arrayfire::randn::<f32>(Dim4::new(&[16, 3, 1, 1]));
 		let yval = ::arrayfire::randn::<f32>(Dim4::new(&[1, 5, 1, 1]));
-	    let x = graph.add(Var::new());
-	    let y = graph.add(Var::new_shared(yval.clone()));
+		let x = graph.add(Var::new());
+		let y = graph.add(Var::new_shared(yval.clone()));
 		graph.replace(x, Var::new_shared(xval.clone()));
-		
+
 		let eval_x = graph.eval(x);
 		let eval_y = graph.eval(y);
 
@@ -217,22 +219,22 @@ mod tests {
 	fn test_affine() {
 		setup();
 		use ::arrayfire::{Dim4, matmul, add, sum_all, MatProp};
-	
-	    let mut graph = Graph::new();
-	
+
+		let mut graph = Graph::new();
+
 		let xval = ::arrayfire::randn::<f32>(Dim4::new(&[16, 3, 1, 1]));
 		let wval = ::arrayfire::randn::<f32>(Dim4::new(&[3, 5, 1, 1]));
 		let yval = ::arrayfire::randn::<f32>(Dim4::new(&[1, 5, 1, 1]));
-	
-	    let x = graph.add(Var::new());
-	    let y = graph.add(Var::new_shared(yval.clone()));
-	    let w = graph.add(Var::new_shared(wval.clone()));
-	
-	    let wx = graph.add(MatMul::new(x, w));
-	    let wxpy = graph.add(Add::new(wx, y));
-	
+
+		let x = graph.add(Var::new());
+		let y = graph.add(Var::new_shared(yval.clone()));
+		let w = graph.add(Var::new_shared(wval.clone()));
+
+		let wx = graph.add(MatMul::new(x, w));
+		let wxpy = graph.add(Add::new(wx, y));
+
 		let z = graph.add(SumAll::new(wxpy));
-	
+
 		graph.replace(x, Var::new_shared(xval.clone()));
 
 		let eval = graph.eval(z);
@@ -246,22 +248,22 @@ mod tests {
 	fn test_affine_diff() {
 		setup();
 		use ::arrayfire::{Dim4, matmul, MatProp, eq, all_true_all, transpose, constant};
-	
-	    let mut graph = Graph::new();
-	
+
+		let mut graph = Graph::new();
+
 		let xval = ::arrayfire::randn::<f32>(Dim4::new(&[16, 3, 1, 1]));
 		let wval = ::arrayfire::randn::<f32>(Dim4::new(&[3, 5, 1, 1]));
 		let yval = ::arrayfire::randn::<f32>(Dim4::new(&[1, 5, 1, 1]));
-	
-	    let x = graph.add(Var::new());
-	    let y = graph.add(Var::new_shared(yval.clone()));
-	    let w = graph.add(Var::new_shared(wval.clone()));
-	
-	    let wx = graph.add(MatMul::new(x, w));
-	    let wxpy = graph.add(Add::new(wx, y));
-	
+
+		let x = graph.add(Var::new());
+		let y = graph.add(Var::new_shared(yval.clone()));
+		let w = graph.add(Var::new_shared(wval.clone()));
+
+		let wx = graph.add(MatMul::new(x, w));
+		let wxpy = graph.add(Add::new(wx, y));
+
 		let z = graph.add(SumAll::new(wxpy));
-	
+
 		graph.replace(x, Var::new_shared(xval.clone()));
 
 		let dz_w = graph.grad(z, vec![w]);
