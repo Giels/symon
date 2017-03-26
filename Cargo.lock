@@ -1,15 +1,15 @@
 [root]
 name = "symon"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
- "arrayfire 3.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "arrayfire 3.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "hdf5-rs 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "arrayfire"
-version = "3.4.1"
+version = "3.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "lazy_static 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -171,7 +171,7 @@ version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [metadata]
-"checksum arrayfire 3.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "6a40a788974e8c155003514c967035a38d0e933d4f363bf3f5f0a08d211fa11f"
+"checksum arrayfire 3.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "243a4907e4af9040cc9b4eb22aea14d9d78d852e6cda08b646410c6bbd137189"
 "checksum hdf5-rs 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "76819611e7349b9e16a71683760509118d1f1abec3a9900a298a4a06f6c93075"
 "checksum lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)" = "cf186d1a8aa5f5bee5fd662bc9c1b949e0259e1bcc379d1f006847b0080c7417"
 "checksum lazy_static 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "6abe0ee2e758cd6bc8a2cd56726359007748fbf4128da998b65d0b70f881e19b"

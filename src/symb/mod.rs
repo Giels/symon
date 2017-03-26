@@ -8,19 +8,31 @@ pub use self::graph::*;
 pub use self::ops::*;
 pub use self::core::*;
 
+macro_rules! test_imports {
+	() => {
+		use ::arrayfire::{Dim4, Seq, all_true_all, max_all, le, ge, eq};
+	}
+}
+
 macro_rules! gen_test {
 	( $symb:expr, $af:expr ) => {
 		setup();
-		use ::arrayfire::{Dim4, all_true_all, eq};
-	
+
 		let mut graph = Graph::new();
 		let xval = ::arrayfire::randn::<f32>(Dim4::new(&[16, 3, 1, 1]));
 		let yval = ::arrayfire::randn::<f32>(Dim4::new(&[16, 3, 1, 1]));
-	    let x = graph.add(Var::new_shared(xval.clone()));
-	    let y = graph.add(Var::new_shared(yval.clone()));
+		let x = graph.add(Var::new_shared(xval.clone()));
+		let y = graph.add(Var::new_shared(yval.clone()));
 		let xpy = graph.add($symb(x, y));
 		let eval = graph.eval(xpy);
-	
+
+		// Simply check if the grad can be taken
+		let o = graph.add(SumAll::new(xpy));
+		let do_x = graph.grad(o, vec![x]);
+		let do_x_eval = graph.eval(do_x[0]);
+		let do_y = graph.grad(o, vec![y]);
+		let do_y_eval = graph.eval(do_y[0]);
+
 		assert_eq!(all_true_all(&eq(&eval, &$af(&xval, &yval, false), false)).0, 1.);
 	}
 }
@@ -28,10 +40,9 @@ macro_rules! gen_test {
 macro_rules! gen_test_diff {
 	( $symb: expr, $af:expr ) => {
 		setup();
-		use ::arrayfire::{Dim4, all_true_all, max_all, le, ge};
 		let slack = 1e-1;
 		let eps = 6e-4;
-		
+
 		let mut graph = Graph::new();
 		let xval = ::arrayfire::randn::<f32>(Dim4::new(&[16, 3, 1, 1]));
 		let yval = ::arrayfire::randn::<f32>(Dim4::new(&[16, 3, 1, 1]));
@@ -39,19 +50,62 @@ macro_rules! gen_test_diff {
 		let y = graph.add(Var::new_shared(yval.clone()));
 		let xpy = graph.add($symb(x, y));
 		let o = graph.add(SumAll::new(xpy));
-		
+
 		let do_x = graph.grad(o, vec![x]);
 		let do_x_eval = graph.eval(do_x[0]);
 		let do_y = graph.grad(o, vec![y]);
 		let do_y_eval = graph.eval(do_y[0]);
-		
+
 		let do_x_ref = ($af(&(&xval + eps / 2.), &yval, false) - $af(&(&xval - eps / 2.), &yval, false)) / eps;
 		let do_y_ref = ($af(&xval, &(&yval + eps / 2.), false) - $af(&xval, &(&yval - eps / 2.), false)) / eps;
 
 		let mx = (max_all(&do_x_ref).0).abs();
 		let my = (max_all(&do_y_ref).0).abs();
-		assert_eq!(all_true_all(&::arrayfire::and(&ge(&(&do_x_ref + slack * mx), &do_x_eval, false), &le(&(&do_x_ref - slack * mx), &do_x_eval, false))).0, 1.);
-		assert_eq!(all_true_all(&::arrayfire::and(&ge(&(&do_y_ref + slack * my), &do_y_eval, false), &le(&(&do_y_ref - slack * my), &do_y_eval, false))).0, 1.);
+		assert_eq!(all_true_all(&::arrayfire::and(&ge(&(&do_x_ref + slack * mx), &do_x_eval, false), &le(&(&do_x_ref - slack * mx), &do_x_eval, false), false)).0, 1.);
+		assert_eq!(all_true_all(&::arrayfire::and(&ge(&(&do_y_ref + slack * my), &do_y_eval, false), &le(&(&do_y_ref - slack * my), &do_y_eval, false), false)).0, 1.);
+	}
+}
+
+macro_rules! gen_dim_test {
+	( $symb:expr, $af:expr, $dim:expr ) => {
+		setup();
+
+		let mut graph = Graph::new();
+		let xval = ::arrayfire::randn::<f32>(Dim4::new(&[16, 3, 1, 1]));
+		let x = graph.add(Var::new_shared(xval.clone()));
+		let fx = graph.add($symb(x, $dim));
+		let eval = graph.eval(fx);
+
+		// Simply check if the grad can be taken
+		let o = graph.add(SumAll::new(fx));
+		let do_x = graph.grad(o, vec![x]);
+		let do_x_eval = graph.eval(do_x[0]);
+
+		assert_eq!(all_true_all(&eq(&eval, &$af(&xval, $dim), false)).0, 1.);
+	}
+}
+
+macro_rules! gen_dim_test_diff {
+	( $symb: expr, $af:expr, $dim:expr ) => {
+		setup();
+		let slack = 1e-1;
+		let eps = 6e-4;
+
+		let mut graph = Graph::new();
+		let xval = ::arrayfire::randn::<f32>(Dim4::new(&[16, 3, 1, 1]));
+		let x = graph.add(Var::new_shared(xval.clone()));
+		let fx = graph.add($symb(x, $dim));
+		let o = graph.add(SumAll::new(fx));
+
+		let do_x = graph.grad(o, vec![x]);
+		let do_x_eval = graph.eval(do_x[0]);
+
+		let do_x_ref = ($af(&(&xval + eps / 2.), $dim) - $af(&(&xval - eps / 2.), $dim)) / eps;
+
+		let mx = (max_all(&do_x_ref).0).abs();
+		let greater = &ge(&(&do_x_ref + slack * mx), &do_x_eval, false);
+		let lesser = &le(&(&do_x_ref - slack * mx), &do_x_eval, false);
+		assert_eq!(all_true_all(&::arrayfire::and(greater, lesser, false)).0, 1.);
 	}
 }
 
@@ -84,7 +138,7 @@ mod tests {
 	}
 
 	#[test]
-	fn test_sum() {
+	fn test_sumall() {
 		setup();
 		use ::arrayfire::{Dim4, sum_all};
 
@@ -99,41 +153,49 @@ mod tests {
 
 	#[test]
 	fn test_add() {
+		test_imports!();
 		gen_test!(Add::new, ::arrayfire::add);
 	}
 
 	#[test]
 	fn test_add_diff() {
+		test_imports!();
 		gen_test_diff!(Add::new, ::arrayfire::add);
 	}
 
 	#[test]
 	fn test_mul() {
+		test_imports!();
 		gen_test!(Mul::new, ::arrayfire::mul);
 	}
 
 	#[test]
 	fn test_mul_diff() {
+		test_imports!();
 		gen_test_diff!(Mul::new, ::arrayfire::mul);
 	}
 
 	#[test]
 	fn test_div() {
+		test_imports!();
 		gen_test!(Div::new, ::arrayfire::div);
 	}
 
 	#[test]
 	fn test_div_diff() {
+		test_imports!();
 		gen_test_diff!(Div::new, ::arrayfire::div);
 	}
 
 	#[test]
 	fn test_sub() {
+		test_imports!();
 		gen_test!(Sub::new, ::arrayfire::sub);
 	}
 
 	#[test]
 	fn test_sub_diff() {
+		test_imports!();
 		gen_test_diff!(Sub::new, ::arrayfire::sub);
 	}
 
@@ -210,8 +272,8 @@ mod tests {
 			let mx = (max_all(&do_x_ref).0).abs();
 			let my = (max_all(&do_y_ref).0).abs();
 
-			assert_eq!(all_true_all(&::arrayfire::and(&ge(&(&do_x_ref + slack * mx), &do_x_eval, false), &le(&(&do_x_ref - slack * mx), &do_x_eval, false))).0, 1.);
-			assert_eq!(all_true_all(&::arrayfire::and(&ge(&(&do_y_ref + slack * my), &do_y_eval, false), &le(&(&do_y_ref - slack * my), &do_y_eval, false))).0, 1.);
+			assert_eq!(all_true_all(&::arrayfire::and(&ge(&(&do_x_ref + slack * mx), &do_x_eval, false), &le(&(&do_x_ref - slack * mx), &do_x_eval, false), false)).0, 1.);
+			assert_eq!(all_true_all(&::arrayfire::and(&ge(&(&do_y_ref + slack * my), &do_y_eval, false), &le(&(&do_y_ref - slack * my), &do_y_eval, false), false)).0, 1.);
 		}
 	}
 
@@ -286,5 +348,255 @@ mod tests {
 		let cst = constant::<f32>(1., Dim4::new(&[16, 5, 1, 1]));
 		let dz_x_ref = matmul(&cst, &transpose(&wval, false), MatProp::NONE, MatProp::NONE);
 		assert_eq!(all_true_all(&eq(&dz_x_ref, &dz_x_eval, false)).0, 1.);
+	}
+
+	#[test]
+	fn test_maxof() {
+		test_imports!();
+		gen_test!(Maxof::new, ::arrayfire::maxof);
+	}
+
+	#[test]
+	fn test_maxof_diff() {
+		test_imports!();
+		gen_test_diff!(Maxof::new, ::arrayfire::maxof);
+	}
+
+	#[test]
+	fn test_minof() {
+		test_imports!();
+		gen_test!(Minof::new, ::arrayfire::minof);
+	}
+
+	#[test]
+	fn test_minof_diff() {
+		test_imports!();
+		gen_test_diff!(Minof::new, ::arrayfire::minof);
+	}
+
+	#[test]
+	fn test_eq() {
+		test_imports!();
+		gen_test!(Eq::new, ::arrayfire::eq);
+	}
+
+	#[test]
+	fn test_eq_diff() {
+		test_imports!();
+		gen_test_diff!(Eq::new, ::arrayfire::eq);
+	}
+
+	#[test]
+	fn test_lt() {
+		test_imports!();
+		gen_test!(Lt::new, ::arrayfire::lt);
+	}
+
+	#[test]
+	fn test_lt_diff() {
+		test_imports!();
+		gen_test_diff!(Lt::new, ::arrayfire::lt);
+	}
+
+	#[test]
+	fn test_le() {
+		test_imports!();
+		gen_test!(Le::new, ::arrayfire::le);
+	}
+
+	#[test]
+	fn test_le_diff() {
+		test_imports!();
+		gen_test_diff!(Le::new, ::arrayfire::le);
+	}
+
+	#[test]
+	fn test_gt() {
+		test_imports!();
+		gen_test!(Gt::new, ::arrayfire::gt);
+	}
+
+	#[test]
+	fn test_gt_diff() {
+		test_imports!();
+		gen_test_diff!(Gt::new, ::arrayfire::gt);
+	}
+
+	#[test]
+	fn test_ge() {
+		test_imports!();
+		gen_test!(Ge::new, ::arrayfire::ge);
+	}
+
+	#[test]
+	fn test_ge_diff() {
+		test_imports!();
+		gen_test_diff!(Ge::new, ::arrayfire::ge);
+	}
+
+	#[test]
+	fn test_sum() {
+		test_imports!();
+		gen_dim_test!(Sum::new, ::arrayfire::sum, 0);
+		gen_dim_test!(Sum::new, ::arrayfire::sum, 1);
+	}
+
+	// #[test]
+	// fn test_sum_diff() {
+	// 	test_imports!();
+	// 	gen_dim_test_diff!(Sum::new, ::arrayfire::sum, 0);
+	// 	gen_dim_test_diff!(Sum::new, ::arrayfire::sum, 1);
+	// }
+
+	#[test]
+	fn test_mean() {
+		test_imports!();
+		gen_dim_test!(Mean::new, ::arrayfire::mean, 0);
+		gen_dim_test!(Mean::new, ::arrayfire::mean, 1);
+	}
+
+	// #[test]
+	// fn test_mean_diff() {
+	// 	test_imports!();
+	// 	gen_dim_test_diff!(Mean::new, ::arrayfire::mean, 0);
+	// 	gen_dim_test_diff!(Mean::new, ::arrayfire::mean, 1);
+	// }
+
+	#[test]
+	fn test_min() {
+		test_imports!();
+		gen_dim_test!(Min::new, ::arrayfire::min, 0);
+		gen_dim_test!(Min::new, ::arrayfire::min, 1);
+	}
+
+	// #[test]
+	// fn test_min_diff() {
+	// 	test_imports!();
+	// 	gen_dim_test_diff!(Min::new, ::arrayfire::min, 0);
+	// 	gen_dim_test_diff!(Min::new, ::arrayfire::min, 1);
+	// }
+
+	#[test]
+	fn test_max() {
+		test_imports!();
+		gen_dim_test!(Max::new, ::arrayfire::max, 0);
+		gen_dim_test!(Max::new, ::arrayfire::max, 1);
+	}
+
+	// #[test]
+	// fn test_max_diff() {
+	// 	test_imports!();
+	// 	gen_dim_test_diff!(Max::new, ::arrayfire::max, 0);
+	// 	gen_dim_test_diff!(Max::new, ::arrayfire::max, 1);
+	// }
+
+	#[test]
+	fn test_argmin() {
+		test_imports!();
+		gen_dim_test!(Argmin::new, |x, y| ::arrayfire::imin(x, y).1, 0);
+		gen_dim_test!(Argmin::new, |x, y| ::arrayfire::imin(x, y).1, 1);
+	}
+
+	#[test]
+	fn test_argmin_diff() {
+		test_imports!();
+		gen_dim_test_diff!(Argmax::new, |x, y| ::arrayfire::imin(x, y).1, 0);
+		gen_dim_test_diff!(Argmax::new, |x, y| ::arrayfire::imin(x, y).1, 1);
+	}
+
+	#[test]
+	fn test_argmax() {
+		test_imports!();
+		gen_dim_test!(Argmax::new, |x, y| ::arrayfire::imax(x, y).1, 0);
+		gen_dim_test!(Argmax::new, |x, y| ::arrayfire::imax(x, y).1, 1);
+	}
+
+	#[test]
+	fn test_argmax_diff() {
+		test_imports!();
+		gen_dim_test_diff!(Argmax::new, |x, y| ::arrayfire::imax(x, y).1, 0);
+		gen_dim_test_diff!(Argmax::new, |x, y| ::arrayfire::imax(x, y).1, 1);
+	}
+
+	#[test]
+	fn test_stdev() {
+		test_imports!();
+		gen_dim_test!(Stdev::new, ::arrayfire::stdev, 0);
+		gen_dim_test!(Stdev::new, ::arrayfire::stdev, 1);
+	}
+
+	// #[test]
+	// fn test_stdev_diff() {
+	// 	test_imports!();
+	// 	gen_dim_test_diff!(Stdev::new, ::arrayfire::stdev, 0);
+	// 	gen_dim_test_diff!(Stdev::new, ::arrayfire::stdev, 1);
+	// }
+
+	#[test]
+	fn test_variance() {
+		test_imports!();
+		gen_dim_test!(Variance::new, |x, y| ::arrayfire::var(x, true, y), 0);
+		gen_dim_test!(Variance::new, |x, y| ::arrayfire::var(x, true, y), 1);
+	}
+
+	// #[test]
+	// fn test_variance_diff() {
+	// 	test_imports!();
+	// 	gen_dim_test_diff!(Variance::new, |x, y| ::arrayfire::var(x, true, y), 0);
+	// 	gen_dim_test_diff!(Variance::new, |x, y| ::arrayfire::var(x, true, y), 1);
+	// }
+
+	#[test]
+	fn test_flip() {
+		test_imports!();
+		gen_dim_test!(Flip::new, ::arrayfire::flip, 0);
+		gen_dim_test!(Flip::new, ::arrayfire::flip, 1);
+	}
+
+	#[test]
+	fn test_flip_diff() {
+		test_imports!();
+		gen_dim_test_diff!(Flip::new, ::arrayfire::flip, 0);
+		gen_dim_test_diff!(Flip::new, ::arrayfire::flip, 1);
+	}
+
+	#[test]
+	fn test_shape() {
+		test_imports!();
+		let mut graph = Graph::new();
+		let xval = ::arrayfire::randn::<f32>(Dim4::new(&[16, 3, 1, 1]));
+	    let x = graph.add(Var::new_shared(xval.clone()));
+		let shape = graph.add(Shape::new(x));
+		let eval = graph.eval(shape);
+	
+		assert_eq!(all_true_all(&eq(&eval, &::arrayfire::Array::new(xval.dims().get(), Dim4::new(&[2, 1, 1, 1])), false)).0, 1.);
+	}
+
+	#[test]
+	fn test_index() {
+		test_imports!();
+		let mut graph = Graph::new();
+		let xval = ::arrayfire::randn::<f32>(Dim4::new(&[16, 3, 1, 1]));
+	    let x = graph.add(Var::new_shared(xval.clone()));
+		let idx = Box::new([Seq::new(0, 0, 1), Seq::default(), Seq::new(0, 0, 1), Seq::new(0, 0, 1)]);
+		let indexed = graph.add(Index::new(x, idx.clone()));
+		let eval = graph.eval(indexed);
+	
+		assert_eq!(all_true_all(&eq(&eval, &::arrayfire::index(&xval, &*idx), false)).0, 1.);
+	}
+
+	#[test]
+	fn test_set_index() {
+		test_imports!();
+		let mut graph = Graph::new();
+		let xval = ::arrayfire::randn::<f32>(Dim4::new(&[16, 3, 1, 1]));
+		let yval = ::arrayfire::randn::<f32>(Dim4::new(&[1, 3, 1, 1]));
+	    let x = graph.add(Var::new_shared(xval.clone()));
+		let y = graph.add(Var::new_shared(yval.clone()));
+		let idx = Box::new([Seq::new(0, 0, 1), Seq::default()]);
+		let indexed = graph.add(SetIndex::new(x, idx.clone(), y));
+		let eval = graph.eval(indexed);
+	
+		assert_eq!(all_true_all(&eq(&eval, &::arrayfire::assign_seq(&xval, &*idx, &yval), false)).0, 1.);
 	}
 }

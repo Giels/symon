@@ -1,4 +1,3 @@
-//TODO: Check that imin/imax/nonzero grads are correct
 use ::symb::base::{Node, NodeID, NodeData};
 use ::symb::graph::{Graph};
 use ::symb::ops::utils::{ConstantLike};
@@ -260,12 +259,8 @@ impl Node for Sum {
 	}
 
 	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
-		match g {
-			Some(grad) => vec![grad],
-			None => {
-						vec![graph.add(ConstantLike::new(1., self.inp))]
-					},
-		}
+		let ones = graph.add(ConstantLike::new(1., self.inp));
+		vec![graph.add(Mul::new(g.unwrap(), ones))]
 	}
 }
 
@@ -294,10 +289,8 @@ impl Node for Mean {
 	}
 
 	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
-		let grad = g.unwrap();
-		let shape = graph.add(Shape::new(self.inp));
-		let denom = graph.add(Index::new(shape, Box::new([Seq::new(self.dim, self.dim, 1)])));
-		vec![graph.add(Div::new(grad, denom))]
+		let ones = graph.add(ConstantLike::new(1., self.inp));
+		vec![graph.add(Mul::new(g.unwrap(), ones))]
 	}
 }
 
@@ -326,7 +319,8 @@ impl Node for Min {
 	}
 
 	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
-		vec![graph.add(ConstantLike::new(0., this))]
+		let ones = graph.add(ConstantLike::new(1., self.inp));
+		vec![graph.add(Mul::new(g.unwrap(), ones))]
 	}
 }
 
@@ -355,7 +349,8 @@ impl Node for Eq {
 	}
 
 	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
-		vec![graph.add(ConstantLike::new(0., self.inp_l))]
+		vec![graph.add(ConstantLike::new(0., self.inp_l)),
+			graph.add(ConstantLike::new(0., self.inp_r))]
 	}
 }
 #[derive(Debug)]
@@ -383,7 +378,8 @@ impl Node for Ge {
 	}
 
 	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
-		vec![graph.add(ConstantLike::new(0., self.inp_l))]
+		vec![graph.add(ConstantLike::new(0., self.inp_l)),
+			graph.add(ConstantLike::new(0., self.inp_r))]
 	}
 }
 
@@ -412,7 +408,8 @@ impl Node for Le {
 	}
 
 	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
-		vec![graph.add(ConstantLike::new(0., self.inp_l))]
+		vec![graph.add(ConstantLike::new(0., self.inp_l)),
+			graph.add(ConstantLike::new(0., self.inp_r))]
 	}
 }
 
@@ -441,7 +438,8 @@ impl Node for Gt {
 	}
 
 	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
-		vec![graph.add(ConstantLike::new(0., self.inp_l))]
+		vec![graph.add(ConstantLike::new(0., self.inp_l)),
+			graph.add(ConstantLike::new(0., self.inp_r))]
 	}
 }
 
@@ -470,7 +468,8 @@ impl Node for Lt {
 	}
 
 	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
-		vec![graph.add(ConstantLike::new(0., self.inp_l))]
+		vec![graph.add(ConstantLike::new(0., self.inp_l)),
+			graph.add(ConstantLike::new(0., self.inp_r))]
 	}
 }
 
@@ -495,7 +494,7 @@ impl Node for Maxof {
 	}
 
 	fn eval(&self, inputs: Vec<&NodeData>) -> NodeData {
-		::arrayfire::maxof(inputs[0], inputs[1])
+		::arrayfire::maxof(inputs[0], inputs[1], false)
 	}
 
 	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
@@ -529,7 +528,7 @@ impl Node for Minof {
 	}
 
 	fn eval(&self, inputs: Vec<&NodeData>) -> NodeData {
-		::arrayfire::minof(inputs[0], inputs[1])
+		::arrayfire::minof(inputs[0], inputs[1], false)
 	}
 
 	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
@@ -567,7 +566,8 @@ impl Node for Max {
 	}
 
 	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
-		vec![graph.add(ConstantLike::new(0., this))]
+		let ones = graph.add(ConstantLike::new(1., self.inp));
+		vec![graph.add(Mul::new(g.unwrap(), ones))]
 	}
 }
 
@@ -684,7 +684,7 @@ impl Node for Stdev {
 	}
 
 	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
-		let grad = g.unwrap_or(graph.add(ConstantLike::new(1., self.inp)));
+		let grad = g.unwrap();
 		let half = graph.add(ConstantLike::new(0.5, this));
 		let efx = graph.add(Mean::new(self.inp, self.dim));
 		let shape = graph.add(Shape::new(self.inp));
@@ -761,7 +761,7 @@ impl Node for Shape {
 	fn eval(&self, inputs: Vec<&NodeData>) -> NodeData {
 		let d = inputs[0].dims();
 		let slice = d.get();
-		let dims = Dim4::new(&[4, 1, 1, 1]);
+		let dims = Dim4::new(&[inputs[0].numdims() as u64, 1, 1, 1]);
 		::arrayfire::Array::new(slice, dims)
 	}
 
@@ -900,6 +900,7 @@ pub struct Index {
 }
 
 impl Debug for Index {
+	// TODO
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		write!(f, "Index(...)")
 	}
@@ -925,10 +926,9 @@ impl Node for Index {
 
 	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let grad = g.unwrap();
-		let zeros = graph.add(ConstantLike::new(0., grad));
-		let ones = graph.add(ConstantLike::new(1., grad));
-		let mask = graph.add(SetIndex::new(zeros, self.indices.clone(), ones));
-		vec![graph.add(Mul::new(mask, grad))]
+		let zeros = graph.add(ConstantLike::new(0., self.inp));
+		let ret = graph.add(SetIndex::new(zeros, self.indices.clone(), grad));
+		vec![ret]
 	}
 }
 
@@ -960,16 +960,16 @@ impl Node for SetIndex {
 	}
 
 	fn eval(&self, inputs: Vec<&NodeData>) -> NodeData {
-		::arrayfire::assign_seq(&inputs[0], &self.indices, &inputs[1])
+		::arrayfire::assign_seq(&inputs[0], &*self.indices, &inputs[1])
 	}
 
 	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
 		let grad = g.unwrap();
-		let zeros = graph.add(ConstantLike::new(0., grad));
-		let ones = graph.add(ConstantLike::new(1., grad));
-		let mask = graph.add(SetIndex::new(ones, self.indices.clone(), zeros));
-		let unmask = graph.add(SetIndex::new(zeros, self.indices.clone(), ones));
-		vec![graph.add(Mul::new(mask, grad)), graph.add(Mul::new(unmask, grad))]
+		let inp_d_zeros = graph.add(ConstantLike::new(0., self.inp_d));
+		let inp_s_zeros = graph.add(ConstantLike::new(0., self.inp_s));
+		let dd = graph.add(SetIndex::new(grad, self.indices.clone(), inp_s_zeros));
+		let ds = graph.add(SetIndex::new(inp_d_zeros, self.indices.clone(), grad));
+		vec![dd, ds]
 	}
 }
 
@@ -996,7 +996,7 @@ impl Node for If {
 	}
 
 	fn eval(&self, inputs: Vec<&NodeData>) -> NodeData {
-		::arrayfire::select(&inputs[0], &inputs[1], &inputs[2])
+		::arrayfire::select(&inputs[1], &inputs[0], &inputs[2])
 	}
 
 	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
@@ -1151,40 +1151,38 @@ impl Node for Reorder {
 	}
 }
 
-#[derive(Debug)]
-pub struct Tile {
-	inp: NodeID,
-	shape: NodeID,
-}
-
-impl Tile {
-	pub fn new(x: NodeID, shape: NodeID) -> Box<Tile> {
-		Box::new(Tile {
-			inp: x,
-			shape: shape,
-		})
-	}
-}
-
-impl Node for Tile {
-	fn get_inputs(&self) -> Vec<NodeID> {
-		vec![self.inp, self.shape]
-	}
-
-	fn eval(&self, inputs: Vec<&NodeData>) -> NodeData {
-		let mut dims: [u64; 4] = [1; 4];
-		inputs[1].host(&mut dims);
-		::arrayfire::tile(&inputs[0], Dim4::new(&dims))
-	}
-
-	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
-		let shape = graph.add(Shape::new(self.inp));
-		// XXX: does this work?
-		let node = Tile::new(g.unwrap(), shape);
-		let zeros = graph.add(ConstantLike::new(0., self.shape));
-		vec![graph.add(node), zeros]
-	}
-}
+// #[derive(Debug)]
+// pub struct Tile {
+// 	inp: NodeID,
+// 	shape: NodeID,
+// }
+// 
+// impl Tile {
+// 	pub fn new(x: NodeID, shape: NodeID) -> Box<Tile> {
+// 		Box::new(Tile {
+// 			inp: x,
+// 			shape: shape,
+// 		})
+// 	}
+// }
+// 
+// impl Node for Tile {
+// 	fn get_inputs(&self) -> Vec<NodeID> {
+// 		vec![self.inp, self.shape]
+// 	}
+// 
+// 	fn eval(&self, inputs: Vec<&NodeData>) -> NodeData {
+// 		let mut dims: [u64; 4] = [1; 4];
+// 		inputs[1].host(&mut dims);
+// 		::arrayfire::tile(&inputs[0], Dim4::new(&dims))
+// 	}
+// 
+// 	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
+// 		let ones = graph.add(ConstantLike::new(0., self.inp));
+// 		let zeros = graph.add(ConstantLike::new(0., self.shape));
+// 		vec![ones, zeros]
+// 	}
+// }
 
 #[derive(Debug)]
 pub struct Nonzero {

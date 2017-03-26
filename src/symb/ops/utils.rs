@@ -26,6 +26,6 @@ impl Node for ConstantLike {
     }
 
 	fn backward(&self, this: NodeID, g: Option<NodeID>, graph: &mut Graph) -> Vec<NodeID> {
-		vec![graph.add(ConstantLike::new(0., g.unwrap()))]
+		vec![graph.add(ConstantLike::new(0., this))]
 	}
 }

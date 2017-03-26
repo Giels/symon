@@ -50,11 +50,18 @@ Most functions keep the same name as in arrayfire, with some exceptions such as
 
 (This list is not exhaustive)
 
+# Limitations
+- Gradients must be taken against scalar values, i.e. the gradient of `SumAll::new(fx)` is valid but not the gradient of `fx`, in general
+- Some (less useful) ops aren't defined
+- There is no extra processing (e.g. optimizations) on the graph
+
 # TODO
+- !! Waiting on arrayfire convolution being updated -- or not -- to finish convolution support
 - For/Scan with arbitrary inner graph
-- Waiting on arrayfire convolution being updated -- or not -- to finish convolution support
 - Cleanup
-- Finish the tests!
-- Serialization
+- More thorough/complete tests
+- Serialization for the graph
 - Optimzation passes (common subexpression elimination, identity, negation-negation, etc.)
 - Proper docs
+
+If you would like to help on any of these, please open discussions as github issues and/or make pull requests addressing these. All help is greatly appreciated.
